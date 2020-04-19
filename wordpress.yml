@@ -1,0 +1,32 @@
+---
+- hosts: dev
+  vars:
+    php_version: '5.6'
+
+  become: yes
+  remote_user: ubuntu
+  roles: 
+    - role: geerlingguy.repo-remi
+      when: ansible_os_family == 'Debian'
+    - geerlingguy.php-versions
+    - geerlingguy.php
+    - geerlingguy.php-mysql
+
+  tasks:
+    - name: Install Apache.
+      apt: name={{ item }} state=present
+      with_items:
+      - apache2
+    - name: Download WordPress
+      get_url: url=http://wordpress.org/wordpress-latest.tar.gz dest=/var/www/html/wordpress.tar.gz force=yes
+    - name: Extract WordPress
+      command: "tar xzf /var/www/html/wordpress.tar.gz -C /var/www/html --strip-components 1"
+    - name: Make my directory tree readable
+      file:
+        path: /var/www/html/
+        mode: u=rwX,g=rX,o=rX
+        recurse: yes
+        owner: apache
+        group: apache
+    - name: Make sure Apache is started now and at boot.
+      service: name=apache2 state=started enabled=yes
